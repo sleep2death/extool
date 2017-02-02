@@ -1,24 +1,27 @@
-const fs = require('fs')
-const async = require('async')
+const path = require('path')
+const {exec} = require('child_process')
+const {dialog} = require('electron').remote
 
-const getPages = require('./lib/page')
-const parse = require('./lib/parse')
+$('#config button').click(() => {
+  dialog.showOpenDialog(
+    {properties: ['openDirectory']},
+    folder => {
+      folder = folder[0]
+      $('#config input').val(folder)
+      $('#config button').text('checking').attr('disabled', 'disabled')
 
-getPages('http://www.t66y.com/thread0806.php?fid=15&page=', {count: 1, pages: 2}, list => {
-  const date = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-')
-  const path = `result/${date}`
-  fs.mkdirSync(path)
-
-  let currentItem = 0
-
-  async.eachSeries(list, (item, callback) => {
-    currentItem += 1
-
-    item.index = currentItem
-    item.total = list.length
-
-    parse(path, item, callback)
-  }, () => {
-    console.log('\nfinished')
-  })
+      checkSVNStatus(folder, isOK => {
+        console.log(isOK)
+      })
+    }
+  )
 })
+
+function checkSVNStatus(folder, callback) {
+  exec(`cd ${folder} && svn info`, (error, stdout, stderr) => {
+    if(error !== null) console.log(error)
+    console.log(stdout, stderr)
+    callback(true)
+  })
+}
+
